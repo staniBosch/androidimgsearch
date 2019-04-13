@@ -19,6 +19,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.InputStream;
@@ -27,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
 
     ImageView searchPic;
     TextInputEditText searchText;
+    String searchString;
+    JSONArray itemList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,26 +48,48 @@ public class MainActivity extends AppCompatActivity {
 
 
         Glide.with(this).load("http://java.sogeti.nl/JavaBlog/wp-content/uploads/2009/04/android_icon_256.png").apply(options).into(searchPic);
-
+        searchString = "";
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener((View view) -> {
-                new ConnectionRest(
-                        (json) -> {
-                            if(json != null)
-                                try {
+            Log.d("REST",""+searchString.equals(searchText.getText().toString()));
+             if(searchString.equals(searchText.getText().toString())){
+                 try {
+                     Log.d("TEST", itemList.toString());
+                     int i = itemList.length();
+                     i = (int) (Math.random() * i);
+                     //String urlimg = itemList.getJSONObject(i).getJSONObject("pagemap").getJSONArray("cse_image").getJSONObject(0).getString("src");
+                     String urlimg = itemList.getJSONObject(i).getString("contentUrl");
+                     Glide.with(this).load(urlimg).apply(options).into(searchPic);
+                 }
+                 catch (Exception e){
+                     Log.d("TEST", e.toString());
+                 }
+             }
+             else{
+                 searchString = searchText.getText().toString();
+                 new ConnectionRest(
+                         (json) -> {
+                             if(json != null)
+                                 try {
 
-                                    //new DownloadImageTask(findViewById(R.id.picSearch))
-                                    //        .execute("http://java.sogeti.nl/JavaBlog/wp-content/uploads/2009/04/android_icon_256.png");
-                                    ((JSONObject) json).getJSONArray("items");
-                                String urlimg = ((JSONObject) json).getJSONArray("items").getJSONObject(0).getJSONObject("pagemap").getJSONArray("cse_image").getJSONObject(0).getString("src");
+                                     //new DownloadImageTask(findViewById(R.id.picSearch))
+                                     //        .execute("http://java.sogeti.nl/JavaBlog/wp-content/uploads/2009/04/android_icon_256.png");
+                                     itemList = new JSONArray(((JSONObject) json).getJSONArray("value").toString());
 
-                                    Glide.with(this).load(urlimg).apply(options).into(searchPic);
+                                     int i = itemList.length();
+                                     i = (int) (Math.random()*i);
+                                     //String urlimg = itemList.getJSONObject(i).getJSONObject("pagemap").getJSONArray("cse_image").getJSONObject(0).getString("src");
+                                     String urlimg = itemList.getJSONObject(i).getString("contentUrl");
 
-                                } catch (Exception e) {
-                                    Log.d("REST ERROR", e.getMessage());
-                                }
-                        }
-                ).execute(searchText.getText().toString());
+                                     Glide.with(this).load(urlimg).apply(options).into(searchPic);
+
+                                 } catch (Exception e) {
+                                     Log.d("REST ERROR", e.getMessage());
+                                 }
+                         }
+                 ).execute(searchString);
+             }
+
                 Log.d("TEST","clicked");
         });
     }
