@@ -53,9 +53,9 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    ImageView searchPic;
-    TextInputEditText searchText;
-    String searchString;
+    ImageView searchPic, movImageView, imageView3;
+    //TextInputEditText searchText;
+    //String searchString;
     JSONArray itemList;
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     private LocationManager locationManager;
@@ -70,7 +70,8 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         searchPic = findViewById(R.id.picSearch);
-        searchText = findViewById(R.id.SearchText);
+        movImageView = findViewById(R.id.movImageView);
+        imageView3 = findViewById(R.id.imageView3);
 
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         queries = new LinkedList<>();
@@ -87,9 +88,9 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(TAG, "onCreate: 3");
         Glide.with(this).load("http://java.sogeti.nl/JavaBlog/wp-content/uploads/2009/04/android_icon_256.png").apply(options).into(searchPic);
-        searchString = "";
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener((View view) -> {
+        //searchString = "";
+        //FloatingActionButton fab = findViewById(R.id.fab);
+        /*fab.setOnClickListener((View view) -> {
             Log.d("REST",""+searchString.equals(searchText.getText().toString()));
              if(searchString.equals(searchText.getText().toString())){
                  try {
@@ -130,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
              }
 
                 Log.d("TEST","clicked");
-        });
+        });*/
     }
 
     @Override

@@ -29,8 +29,8 @@ public class ConnectionRest extends AsyncTask<String, Void, Object> {
     @Override
     protected Object doInBackground(String... params) {
         String urlstring;
-        //urlstring = "https://www.googleapis.com/customsearch/v1?key=AIzaSyAPib_PUxBYSYs44q0UjKjJygqcZbe-6gs&cx=001292501706504981640:vdkc5g3tuao&q="+params[0];
-        urlstring = "https://api.cognitive.microsoft.com/bing/v7.0/images/search?q="+params[0];
+        urlstring = "https://www.googleapis.com/customsearch/v1?key=AIzaSyB-3iDuPKlwhiWQPoPKEiKWosoLyTqhbWk&cx=001292501706504981640:vdkc5g3tuao&q="+params[0];
+        //urlstring = "https://api.cognitive.microsoft.com/bing/v7.0/images/search?q="+params[0];
         try {
             URLEncoder.encode(urlstring, "UTF-8");
         }catch (UnsupportedEncodingException e){
@@ -55,14 +55,13 @@ public class ConnectionRest extends AsyncTask<String, Void, Object> {
                 }
                 else return null;
             } catch (Exception e){
-                //new Data2ServerHelper().data2Local(urlstring, params[1]);
                 Log.d("XRESTError", "couldnt send :"+params[1]+" errmsg: "+e.getMessage());
             }
         }//GET
         else{
             request = new Request.Builder()
                     .url(urlstring)
-                    .addHeader("Ocp-Apim-Subscription-Key","0438467ceea34c3f9231dfb35f114cce")
+                    //.addHeader("Ocp-Apim-Subscription-Key","0438467ceea34c3f9231dfb35f114cce")
                     .build();
             try {
                 Response response = client.newCall(request).execute();
