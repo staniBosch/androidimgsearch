@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">SearchApiExample</string>
     <string name="action_settings">Settings</string>
+    <string name="text_location_permission">Damit die App funktioniert, wird die Berechtigung benötigt</string>
+    <string name="ok">OK</string>
+    <string name="title_location_permission_request">Berechtigung wird benötigt</string>
+
 </resources>
