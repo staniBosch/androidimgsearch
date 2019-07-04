@@ -29,7 +29,7 @@ public class ConnectionRest extends AsyncTask<String, Void, Object> {
     @Override
     protected Object doInBackground(String... params) {
         String urlstring;
-        urlstring = "https://www.googleapis.com/customsearch/v1?key=AIzaSyB-3iDuPKlwhiWQPoPKEiKWosoLyTqhbWk&cx=001292501706504981640:vdkc5g3tuao&q="+params[0];
+        urlstring = "https://www.googleapis.com/customsearch/v1?key=AIzaSyB-3iDuPKlwhiWQPoPKEiKWosoLyTqhbWk&cx=001292501706504981640:vdkc5g3tuao&safe=off&searchType=image&q="+params[0];
         //urlstring = "https://api.cognitive.microsoft.com/bing/v7.0/images/search?q="+params[0];
         try {
             URLEncoder.encode(urlstring, "UTF-8");

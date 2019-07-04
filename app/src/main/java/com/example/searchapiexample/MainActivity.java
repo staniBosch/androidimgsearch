@@ -10,20 +10,17 @@ import android.graphics.BitmapFactory;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.design.widget.TextInputEditText;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
@@ -31,7 +28,6 @@ import android.widget.Toast;
 
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.android.gms.awareness.Awareness;
 import com.google.android.gms.awareness.snapshot.DetectedActivityResponse;
@@ -47,21 +43,22 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LocationListener {
 
     ImageView searchPic, movImageView, imageView3;
     //TextInputEditText searchText;
     //String searchString;
-    JSONArray itemList;
+
+    private JSONArray searchItems;
+
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     private LocationManager locationManager;
     public List<List<String>> queries;
     private static final String TAG = "MainActivity";
-    public List<Bitmap> results = new ArrayList<>();
+    private double lon,lat;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +72,9 @@ public class MainActivity extends AppCompatActivity {
 
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         queries = new LinkedList<>();
+        lon = 0;
+        lat = 0;
+
         Log.d(TAG, "onCreate: 1");
 
         handleWeather();
@@ -88,13 +88,18 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(TAG, "onCreate: 3");
         Glide.with(this).load("http://java.sogeti.nl/JavaBlog/wp-content/uploads/2009/04/android_icon_256.png").apply(options).into(searchPic);
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestFineLocationPermission();
+        } else {
+            ((LocationManager) this.getSystemService(Context.LOCATION_SERVICE)).requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000, 0, this);
+        }
         //searchString = "";
         //FloatingActionButton fab = findViewById(R.id.fab);
         /*fab.setOnClickListener((View view) -> {
             Log.d("REST",""+searchString.equals(searchText.getText().toString()));
              if(searchString.equals(searchText.getText().toString())){
                  try {
-                     Log.d("TEST", itemList.toString());
+
                      int i = itemList.length();
                      i = (int) (Math.random() * i);
                      //String urlimg = itemList.getJSONObject(i).getJSONObject("pagemap").getJSONArray("cse_image").getJSONObject(0).getString("src");
@@ -102,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
                      Glide.with(this).load(urlimg).apply(options).into(searchPic);
                  }
                  catch (Exception e){
-                     Log.d("TEST", e.toString());
+
                  }
              }
              else{
@@ -130,7 +135,6 @@ public class MainActivity extends AppCompatActivity {
                  ).execute(searchString);
              }
 
-                Log.d("TEST","clicked");
         });*/
     }
 
@@ -180,8 +184,38 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
+
+    public void handleRequest(String req, ImageView dest){
+
+        RequestOptions options = new RequestOptions()
+                .centerCrop()
+                .placeholder(R.mipmap.ic_launcher_round)
+                .error(R.mipmap.ic_launcher_round);
+        new ConnectionRest(
+                (json) -> {
+                    if (json != null)
+                        try {
+
+                            //new DownloadImageTask(findViewById(R.id.picSearch))
+                            //        .execute("http://java.sogeti.nl/JavaBlog/wp-content/uploads/2009/04/android_icon_256.png");
+                            //searchItems = ((JSONObject) json).getJSONArray("items");
+                            String urlimg = ((JSONObject) json).getJSONArray("items").getJSONObject((int)(Math.random()*10)).getJSONObject("image").getString("thumbnailLink");
+
+                            Glide.with(this).load(urlimg).apply(options).into(dest);
+
+                        } catch (Exception e) {
+                            Log.d("REST ERROR", e.getMessage());
+                        }
+                }
+        ).execute(req);
+    }
+
         public void handleQuery() {
+        if(queries.isEmpty())
+            return;
             String joinedQuery = TextUtils.join(" ", queries.get(0));
+            queries = new LinkedList<>();
             RequestOptions options = new RequestOptions()
                     .centerCrop()
                     .placeholder(R.mipmap.ic_launcher_round)
@@ -193,8 +227,8 @@ public class MainActivity extends AppCompatActivity {
 
                                 //new DownloadImageTask(findViewById(R.id.picSearch))
                                 //        .execute("http://java.sogeti.nl/JavaBlog/wp-content/uploads/2009/04/android_icon_256.png");
-                                ((JSONObject) json).getJSONArray("items");
-                                String urlimg = ((JSONObject) json).getJSONArray("items").getJSONObject(0).getJSONObject("pagemap").getJSONArray("cse_image").getJSONObject(0).getString("src");
+                                searchItems = ((JSONObject) json).getJSONArray("items");
+                                String urlimg = ((JSONObject) json).getJSONArray("items").getJSONObject((int)(Math.random()*10)).getJSONObject("image").getString("thumbnailLink");
 
                                 Glide.with(this).load(urlimg).apply(options).into(searchPic);
 
@@ -213,34 +247,34 @@ public class MainActivity extends AppCompatActivity {
                 if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                     Log.d(TAG, "handleWeather: 3");
                     Awareness.getSnapshotClient(this).getWeather()
-                            .addOnSuccessListener(new OnSuccessListener<WeatherResponse>() {
-
-                                @Override
-                                public void onSuccess(WeatherResponse weatherResponse) {
+                            .addOnSuccessListener(weatherResponse-> {
 
                                     Log.d(TAG, "Humidity: " + weatherResponse.getWeather().getHumidity());
                                     Log.d(TAG, "Dew Point: " + weatherResponse.getWeather().getDewPoint(Weather.CELSIUS));
                                     Log.d(TAG, "FeelsLike Temperature: " + weatherResponse.getWeather().getFeelsLikeTemperature(Weather.CELSIUS));
                                     Log.d(TAG, "Temperature: " + weatherResponse.getWeather().getTemperature(Weather.CELSIUS));
                                     int i = 1;
-                                    LinkedList<String> query = null;
+                                    LinkedList<String> query;
                                     for (Integer condition : weatherResponse.getWeather().getConditions()) {
                                         Log.d("log4", "i: " + i + " Condition: " + condition);
                                         switch (condition) {
                                             case 1:
                                                 query = new LinkedList<>();
                                                 query.add("Sonne");
+                                                handleRequest("Sonne", imageView3);
                                                 queries.add(query);
                                                 break;
                                             case 2:
                                                 query = new LinkedList<>();
                                                 query.add("Wolken");
+                                                handleRequest("Wolken", imageView3);
                                                 queries.add(query);
                                                 Log.d("log4", "queries.size: " + queries.size());
                                                 break;
                                             case 3:
                                                 query = new LinkedList<>();
                                                 query.add("Nebel");
+                                                handleRequest("Nebel", imageView3);
                                                 queries.add(query);
                                                 break;
                                             case 4:  // Wäre Weather.HAZY -> schwierig, ein passendes Bild zu finden
@@ -248,41 +282,40 @@ public class MainActivity extends AppCompatActivity {
                                             case 5:
                                                 query = new LinkedList<>();
                                                 query.add("Glatteis");
+                                                handleRequest("Glatteis", imageView3);
                                                 queries.add(query);
                                                 break;
                                             case 6:
                                                 query = new LinkedList<>();
                                                 query.add("Regen");
+                                                handleRequest("Regen", imageView3);
                                                 queries.add(query);
                                                 break;
                                             case 7:
                                                 query = new LinkedList<>();
                                                 query.add("Schnee");
+                                                handleRequest("Schnee", imageView3);
                                                 queries.add(query);
                                                 break;
                                             case 8:
                                                 query = new LinkedList<>();
                                                 query.add("Gewitter");
+                                                handleRequest("Gewitter", imageView3);
                                                 queries.add(query);
                                                 break;
                                             case 9:
                                                 query = new LinkedList<>();
                                                 query.add("Sturm");
+                                                handleRequest("Sturm", imageView3);
                                                 queries.add(query);
                                                 break;
                                         }
                                     }
                                     handleLocation();
-
-                                }
                             })
-                            .addOnFailureListener(new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-
-                                    Log.d(TAG, "Failed: " + e);
-                                }
-                            });
+                            .addOnFailureListener(e->
+                                    Log.d(TAG, "Failed: " + e)
+                            );
                 }
                 else {
                     Toast.makeText(this, "GPS ist nicht aktiviert", Toast.LENGTH_LONG).show();
@@ -294,23 +327,39 @@ public class MainActivity extends AppCompatActivity {
             if (checkLocationPermission()) {
                 if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                     Awareness.getSnapshotClient(this).getDetectedActivity()
-                            .addOnSuccessListener(new OnSuccessListener<DetectedActivityResponse>() {
-
-                                @Override
-                                public void onSuccess(DetectedActivityResponse detectedActivityResponse) {
-
+                            .addOnSuccessListener(detectedActivityResponse-> {
                                     ActivityRecognitionResult activityRecognitionResult = detectedActivityResponse.getActivityRecognitionResult();
                                     Log.d(TAG, "Most probable activity: " + activityRecognitionResult.getMostProbableActivity());
-
-                                }
+                                    switch (activityRecognitionResult.getMostProbableActivity().getType()) {
+                                        case 0:
+                                            handleRequest("Auto fahren", movImageView);
+                                            break;
+                                        case 1:
+                                            handleRequest("Fahrrad fahren", movImageView);
+                                            break;
+                                        case 2:
+                                            handleRequest("Zu Fuß gehen", movImageView);
+                                            break;
+                                        case 4:
+                                            handleRequest("Unbekannt", movImageView);
+                                            break;
+                                        case 5:
+                                            handleRequest("TILTING", movImageView);
+                                            break;
+                                        case 7:
+                                            handleRequest("WALKING ", movImageView);
+                                            break;
+                                        case 8:
+                                            handleRequest("RUNNING  ", movImageView);
+                                            break;
+                                        default:
+                                            handleRequest("TILTING", movImageView);
+                                                break;
+                                    }
                             })
-                            .addOnFailureListener(new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-
-                                    Log.d(TAG, "Failed: " + e);
-                                }
-                            });
+                            .addOnFailureListener(e->
+                                    Log.d(TAG, "Failed: " + e)
+                            );
                 }
             }
         }
@@ -319,10 +368,7 @@ public class MainActivity extends AppCompatActivity {
             if (checkLocationPermission()) {
                 if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                     Awareness.getSnapshotClient(this).getLocation()
-                            .addOnSuccessListener(new OnSuccessListener<LocationResponse>() {
-
-                                @Override
-                                public void onSuccess(LocationResponse locationResponse) {
+                            .addOnSuccessListener(locationResponse-> {
                                     Location location = locationResponse.getLocation();
                                     Log.d(TAG, location.getLatitude() + " , " + location.getLongitude() + " , " + location.getAltitude());
                                     Geocoder geocoder = new Geocoder(getApplicationContext());
@@ -331,29 +377,31 @@ public class MainActivity extends AppCompatActivity {
                                         if (addresses.isEmpty()) {
                                             Log.d(TAG, "Waiting for location");
                                         } else {
-                                            if (addresses.size() > 0) {
-                                                Log.d(TAG, addresses.get(0).getFeatureName() + ", " + addresses.get(0).getLocality()
+
+                                               Log.d(TAG, addresses.get(0).getFeatureName() + ", " + addresses.get(0).getLocality()
                                                         + ", " + addresses.get(0).getAdminArea() + ", " + addresses.get(0).getCountryName());
                                                 for (List<String> query : queries) {
-                                                    query.add(addresses.get(0).getLocality());
+                                                    //if(addresses.get(0).getFeatureName()!=null)
+                                                    //    query.add(addresses.get(0).getFeatureName());
+                                                    //if(addresses.get(0).getLocality()!=null)
+                                                    //    query.add(addresses.get(0).getLocality());
+                                                    if(addresses.get(0).getAdminArea()!=null)
+                                                        query.add(addresses.get(0).getAdminArea());
+                                                    if(addresses.get(0).getCountryName()!=null)
+                                                        query.add(addresses.get(0).getCountryName());
                                                 }
                                                 // handleActivity(); // Könnte man auch evt. mit einbeziehen
                                                 handleQuery();
-                                            }
+
                                         }
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
 
-                                }
                             })
-                            .addOnFailureListener(new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-
-                                    Log.d(TAG, "Failed: " + e);
-                                }
-                            });
+                            .addOnFailureListener(e->
+                                    Log.d(TAG, "Failed: " + e)
+                            );
 
                 } else {
                     Toast.makeText(this, "GPS ist nicht aktiviert", Toast.LENGTH_LONG).show();
@@ -362,7 +410,56 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        public boolean checkLocationPermission() {
+    @Override
+    public void onLocationChanged(Location location) {
+        if(lon != location.getLongitude() && lat!=location.getLatitude()){
+            lon = location.getLongitude();
+            lat = location.getLatitude();
+
+            handleWeather();
+        }
+        if(searchItems != null)
+        try {
+            RequestOptions options = new RequestOptions()
+                    .centerCrop()
+                    .placeholder(R.mipmap.ic_launcher_round)
+                    .error(R.mipmap.ic_launcher_round);
+            String urlimg = searchItems.getJSONObject((int) (Math.random() * 10)).getJSONObject("image").getString("thumbnailLink");
+            Glide.with(this).load(urlimg).apply(options).into(searchPic);
+        } catch(Exception e){
+
+        }
+        handleActivity();
+
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
+
+    private void requestFineLocationPermission() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)) {
+            new AlertDialog.Builder(MainActivity.this).setTitle("Erlaubnis benötigt").setMessage("Zum Anzeigen der GPS-Daten, wird deine Erlaubnis benötigt")
+                    .setPositiveButton("ok", (dialog, which)->
+                            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1))
+                    .setNegativeButton("cancel", (dialog, which)->dialog.dismiss())
+                    .create().show();
+        } else
+            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+    }
+
+    public boolean checkLocationPermission() {
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -377,14 +474,11 @@ public class MainActivity extends AppCompatActivity {
                     new AlertDialog.Builder(this)
                             .setTitle(R.string.title_location_permission_request)
                             .setMessage(R.string.text_location_permission)
-                            .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
+                            .setPositiveButton(R.string.ok, (dialogInterface,  i)-> {
                                     //Prompt the user once explanation has been shown
                                     ActivityCompat.requestPermissions(MainActivity.this,
                                             new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                                             MY_PERMISSIONS_REQUEST_LOCATION);
-                                }
                             })
                             .create()
                             .show();
@@ -404,7 +498,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onRequestPermissionsResult(int requestCode,
-                                               String permissions[], int[] grantResults) {
+                                               String[] permissions, int[] grantResults) {
             switch (requestCode) {
                 case MY_PERMISSIONS_REQUEST_LOCATION: {
                     // If request is cancelled, the result arrays are empty.
