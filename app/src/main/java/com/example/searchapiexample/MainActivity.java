@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     public List<List<String>> queries;
     private static final String TAG = "MainActivity";
     private double lon,lat;
+    private String locality = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -340,6 +341,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                                         case 2:
                                             handleRequest("Zu Fuß gehen", movImageView);
                                             break;
+                                        case 3:
+                                            handleRequest("gerade stehen", movImageView);
+                                            break;
                                         case 4:
                                             handleRequest("Unbekannt", movImageView);
                                             break;
@@ -380,18 +384,22 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
                                                Log.d(TAG, addresses.get(0).getFeatureName() + ", " + addresses.get(0).getLocality()
                                                         + ", " + addresses.get(0).getAdminArea() + ", " + addresses.get(0).getCountryName());
-                                                for (List<String> query : queries) {
-                                                    //if(addresses.get(0).getFeatureName()!=null)
-                                                    //    query.add(addresses.get(0).getFeatureName());
-                                                    //if(addresses.get(0).getLocality()!=null)
-                                                    //    query.add(addresses.get(0).getLocality());
-                                                    if(addresses.get(0).getAdminArea()!=null)
-                                                        query.add(addresses.get(0).getAdminArea());
-                                                    if(addresses.get(0).getCountryName()!=null)
-                                                        query.add(addresses.get(0).getCountryName());
-                                                }
-                                                // handleActivity(); // Könnte man auch evt. mit einbeziehen
-                                                handleQuery();
+                                               if(!locality.equals(addresses.get(0).getLocality()+"")) {
+                                                   Log.d(TAG, locality+"------"+addresses.get(0).getLocality());
+                                                   locality = addresses.get(0).getLocality() + "";
+                                                   for (List<String> query : queries) {
+                                                       //if(addresses.get(0).getFeatureName()!=null)
+                                                       //    query.add(addresses.get(0).getFeatureName());
+                                                       //if(addresses.get(0).getLocality()!=null)
+                                                       //    query.add(addresses.get(0).getLocality());
+                                                       if (addresses.get(0).getAdminArea() != null)
+                                                           query.add(addresses.get(0).getAdminArea());
+                                                       if (addresses.get(0).getCountryName() != null)
+                                                           query.add(addresses.get(0).getCountryName());
+                                                   }
+                                                   // handleActivity(); // Könnte man auch evt. mit einbeziehen
+                                                   handleQuery();
+                                               }
 
                                         }
                                     } catch (IOException e) {
@@ -412,7 +420,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     @Override
     public void onLocationChanged(Location location) {
-        if(lon != location.getLongitude() && lat!=location.getLatitude()){
+        if((location.getLongitude()>(lon-1) && location.getLongitude()<(lon+1)) && (location.getLatitude()>(lat-1) && location.getLatitude()<(lat+1))) {
+        } else{
             lon = location.getLongitude();
             lat = location.getLatitude();
 
